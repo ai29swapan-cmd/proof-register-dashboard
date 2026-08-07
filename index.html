@@ -79,6 +79,20 @@
   .stat-card .v{ font-family:var(--mono); font-size:24px; font-weight:600; }
   .stat-card.gold .v{ color:var(--gold); }
 
+  /* ---------- this-month strip ---------- */
+  .stats-month{
+    display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr; gap:14px; margin-bottom:24px;
+  }
+  .stat-card.month-highlight{
+    border-left:3px solid var(--accent); padding-left:15px; position:relative;
+  }
+  .stat-card.month-highlight .l{ display:flex; align-items:center; gap:6px; }
+  .stat-card.month-highlight .l::before{
+    content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none;
+  }
+  .stat-card .v.teal{ color:#0E7C86; }
+  .stat-card .v.magenta{ color:#C2185B; }
+
   /* ---------- filter bar ---------- */
   .filters{
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
@@ -156,6 +170,7 @@
 
   @media (max-width:900px){
     .stats{ grid-template-columns:repeat(2,1fr); }
+    .stats-month{ grid-template-columns:repeat(2,1fr); }
     .charts-grid{ grid-template-columns:1fr; }
   }
   @media (max-width:640px){
@@ -190,6 +205,13 @@
     <div class="stat-card"><div class="l">Total Prints</div><div class="v" id="stat-prints">—</div></div>
     <div class="stat-card gold"><div class="l">Total Cost</div><div class="v" id="stat-cost">—</div></div>
     <div class="stat-card"><div class="l">Added Today</div><div class="v" id="stat-today">—</div></div>
+  </section>
+
+  <section class="stats-month">
+    <div class="stat-card month-highlight"><div class="l">This Month</div><div class="v" id="month-label">—</div></div>
+    <div class="stat-card"><div class="l">Requests</div><div class="v" id="month-requests">—</div></div>
+    <div class="stat-card"><div class="l">Prints</div><div class="v teal" id="month-prints">—</div></div>
+    <div class="stat-card"><div class="l">Cost</div><div class="v magenta" id="month-cost">—</div></div>
   </section>
 
   <div class="filters">
@@ -260,6 +282,8 @@
   const state = { records: [], sortKey:"Date", sortDir:"desc", search:"", month:"", engineer:"", profile:"", submitted:"" };
   let charts = {};
   let firstLoad = true;
+  let failCount = 0;
+  let pollTimer = null;
 
   const $ = (sel) => document.querySelector(sel);
   const fmtMoney = (n) => CONFIG.CURRENCY + (Number(n)||0).toLocaleString("en-IN");
@@ -311,17 +335,33 @@
       if(!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       state.records = Array.isArray(data) ? data : [];
+      failCount = 0;
       setStatus(true);
       populateFilters();
       render();
       firstLoad = false;
+      scheduleNext(CONFIG.REFRESH_MS);
     }catch(err){
       console.error("Fetch failed:", err);
-      setStatus(false);
+      failCount++;
+      // Only show Offline after 2 consecutive misses — a single blip
+      // (cold start, one dropped packet) shouldn't alarm the user
+      // when the connection is actually fine.
+      if(failCount >= 2){
+        setStatus(false);
+      }
       if(firstLoad){
         $("#table-body").innerHTML = '<tr><td colspan="8"><div class="empty-state">Could not reach the live register. Check the deployed script URL.</div></td></tr>';
       }
+      // Retry sooner than the normal interval so a transient miss
+      // recovers quickly instead of waiting the full 30s.
+      scheduleNext(5000);
     }
+  }
+
+  function scheduleNext(delay){
+    if(pollTimer) clearTimeout(pollTimer);
+    pollTimer = setTimeout(fetchRecords, delay);
   }
 
   function fillSelect(select, values, allLabel){
@@ -408,11 +448,37 @@
 
     $("#result-count").textContent = filtered.length + " of " + state.records.length + " shown";
     updateStats(filtered);
+    updateMonthStats();
     try{
       updateCharts(filtered);
     }catch(chartErr){
       console.error("Chart render failed (data connection is still fine):", chartErr);
     }
+  }
+
+  function isThisMonth(v){
+    if(!v) return false;
+    const d = new Date(v);
+    if(isNaN(d.getTime())) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+
+  function updateMonthStats(){
+    const now = new Date();
+    $("#month-label").textContent = now.toLocaleDateString("en-US", { month:"long", year:"numeric" });
+
+    // Always scoped to the full dataset (not the current filter selection)
+    // so "This Month" reflects the real month totals regardless of what
+    // the person is currently filtering the table by.
+    const thisMonth = state.records.filter(r => isThisMonth(r.Date));
+    const requests = thisMonth.length;
+    const prints = thisMonth.reduce((s,r) => s + (Number(r.Prints)||0), 0);
+    const cost = thisMonth.reduce((s,r) => s + (Number(r.Cost)||0), 0);
+
+    $("#month-requests").textContent = fmtNum(requests);
+    $("#month-prints").textContent = fmtNum(prints);
+    $("#month-cost").textContent = fmtMoney(cost);
   }
 
   function updateStats(filtered){
@@ -572,7 +638,6 @@
   });
 
   fetchRecords();
-  setInterval(fetchRecords, CONFIG.REFRESH_MS);
 })();
 </script>
 
