@@ -3,447 +3,267 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Proof Register — Live Desk</title>
+<title>Proof Register Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<style>
-  /* ============ CONFIG — edit this one line ============ */
-  /* Paste your deployed Apps Script Web App /exec URL below. */
-</style>
-</head>
-<body>
 
 <!-- ============================================================
-     CONFIG — the only thing you need to edit to go live
+     CONFIG — the only thing you'd need to edit
      ============================================================ -->
 <script>
   const CONFIG = {
     SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwUu2-mK2ugdsqsLLyUXAYvS3kBf4HLv5SDNYopm8TvYMsKPheokHVmYeTMG2r-2MXYIA/exec",
-    REFRESH_MS: 30000,      // how often to poll for new records
-    COST_PER_PRINT: 2000,
+    REFRESH_MS: 30000,
     CURRENCY: "₹"
   };
 </script>
 
 <style>
   :root{
-    --paper: #F3EFE4;
-    --paper-raised: #FBF9F3;
-    --ink: #16202E;
-    --ink-soft: #4A5568;
-    --navy: #0B2A4A;
-    --press-blue: #0B5394;
-    --brass: #C9860B;
-    --brass-soft: #F3E4C2;
-    --rule: #D8D1BE;
-    --rule-strong: #16202E;
-    --cyan: #16B4CE;
-    --magenta: #C2185B;
-    --yellow: #E0A800;
+    --bg: #F6F7F9;
+    --card: #FFFFFF;
+    --border: #E4E7EC;
+    --text: #1F2430;
+    --text-soft: #6B7280;
+    --text-faint: #9CA3AF;
+    --accent: #0B5394;
+    --accent-soft: #EAF2FB;
     --good: #2E7D32;
-    --radius: 3px;
-    --font-display: "Fraunces", Georgia, serif;
-    --font-body: "IBM Plex Sans", -apple-system, sans-serif;
-    --font-mono: "IBM Plex Mono", monospace;
+    --bad: #C0392B;
+    --gold: #C9860B;
+    --radius: 10px;
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", monospace;
   }
-
   *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
   body{
-    margin:0;
-    background:var(--paper);
-    background-image:
-      radial-gradient(rgba(22,32,46,0.025) 1px, transparent 1px);
-    background-size:3px 3px;
-    color:var(--ink);
-    font-family:var(--font-body);
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--font);
     -webkit-font-smoothing:antialiased;
   }
+  a{ color:var(--accent); }
 
-  a{ color:inherit; }
+  .wrap{ max-width:1220px; margin:0 auto; padding:28px 24px 60px 24px; }
 
-  ::selection{ background:var(--brass-soft); color:var(--navy); }
-
-  /* ---------- registration-mark signature element ---------- */
-  .regmark{
-    width:16px; height:16px; position:relative; flex:none;
+  /* ---------- header ---------- */
+  header{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    flex-wrap:wrap; gap:14px; margin-bottom:22px;
   }
-  .regmark::before, .regmark::after{
-    content:""; position:absolute; background:currentColor;
+  header h1{ margin:0 0 4px 0; font-size:24px; font-weight:700; letter-spacing:-0.01em; }
+  header p{ margin:0; color:var(--text-soft); font-size:13.5px; }
+  .status{
+    display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600;
+    color:var(--good); background:#EAF7EC; border:1px solid #CFEAD1;
+    padding:6px 12px; border-radius:20px; white-space:nowrap;
   }
-  .regmark::before{ left:7px; top:0; width:2px; height:16px; }
-  .regmark::after{ top:7px; left:0; width:16px; height:2px; }
-  .regmark span{ position:absolute; inset:0; }
-  .regmark i{
-    position:absolute; width:6px; height:6px; border-radius:50%;
-    top:5px; left:5px;
-  }
-
-  .live-dot{
-    display:inline-flex; align-items:center; gap:6px;
-    font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em;
-    color:var(--good); text-transform:uppercase; font-weight:600;
-  }
-  .live-dot .pulse{
-    width:7px; height:7px; border-radius:50%; background:var(--good);
-    box-shadow:0 0 0 0 rgba(46,125,50,0.55);
-    animation:pulse 1.8s infinite;
-  }
-  .live-dot.offline .pulse{ background:#B0413E; box-shadow:none; animation:none; }
-  .live-dot.offline{ color:#B0413E; }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(46,125,50,0.55); }
-    70%{ box-shadow:0 0 0 7px rgba(46,125,50,0); }
-    100%{ box-shadow:0 0 0 0 rgba(46,125,50,0); }
-  }
-
-  /* ---------- masthead ---------- */
-  header.masthead{
-    background:
-      linear-gradient(180deg, var(--navy) 0%, #0B2A4A 88%, #143a63 100%);
-    color:#F3EFE4;
-    padding:22px 28px 0 28px;
-  }
-  .masthead-top{
-    display:flex; align-items:center; justify-content:space-between;
-    max-width:1180px; margin:0 auto 14px auto;
-    font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em;
-    text-transform:uppercase; color:#A9C1DA;
-  }
-  .masthead-top .dateline{ display:flex; gap:18px; align-items:center; }
-
-  .masthead-main{
-    max-width:1180px; margin:0 auto; padding-bottom:18px;
-    display:flex; align-items:flex-end; justify-content:space-between;
-    gap:24px; flex-wrap:wrap;
-    border-bottom:3px solid #F3EFE4;
-  }
-  .wordmark{
-    font-family:var(--font-display); font-weight:700;
-    font-size:clamp(32px, 5vw, 52px); line-height:1;
-    letter-spacing:-0.01em; display:flex; align-items:center; gap:14px;
-  }
-  .wordmark .regmark{ color:var(--brass); }
-  .kicker{
-    font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.14em;
-    text-transform:uppercase; color:var(--brass); margin-bottom:6px;
-    display:block;
-  }
-  .masthead-meta{
-    display:flex; gap:26px; padding-bottom:6px; flex-wrap:wrap;
-  }
-  .masthead-meta div{ text-align:right; }
-  .masthead-meta .n{ font-family:var(--font-mono); font-size:20px; font-weight:600; }
-  .masthead-meta .l{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:#A9C1DA; }
-
-  /* ---------- layout ---------- */
-  main{ max-width:1180px; margin:0 auto; padding:26px 28px 70px 28px; }
+  .status.offline{ color:var(--bad); background:#FBEAEA; border-color:#F0C6C2; }
+  .status .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
 
   .config-banner{
-    display:none;
-    background:#FBEAEA; border:1px solid #E3A9A6; color:#7A2622;
-    padding:14px 18px; border-radius:var(--radius); margin-bottom:22px;
-    font-size:13.5px; line-height:1.5;
+    display:none; background:#FBEAEA; border:1px solid #F0C6C2; color:#7A2622;
+    padding:12px 16px; border-radius:var(--radius); margin-bottom:20px; font-size:13px;
   }
-  .config-banner code{
-    background:#fff; padding:1px 6px; border-radius:2px; font-family:var(--font-mono);
-  }
+  .config-banner code{ background:#fff; padding:1px 6px; border-radius:4px; font-family:var(--mono); }
 
-  /* ---------- stat strip ---------- */
+  /* ---------- stat cards ---------- */
   .stats{
-    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
-    background:var(--rule-strong); border:1px solid var(--rule-strong);
-    margin-bottom:28px;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;
   }
-  .stat{
-    background:var(--paper-raised); padding:18px 18px 16px 18px;
-    position:relative;
+  .stat-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 18px;
   }
-  .stat .l{
-    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.1em;
-    text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px;
-    display:block;
-  }
-  .stat .v{
-    font-family:var(--font-mono); font-weight:600;
-    font-size:clamp(20px,2.4vw,30px); color:var(--navy);
-  }
-  .stat.brass .v{ color:var(--brass); }
-  .stat .v small{ font-size:15px; font-weight:500; color:var(--ink-soft); }
+  .stat-card .l{ font-size:12px; color:var(--text-soft); margin-bottom:6px; }
+  .stat-card .v{ font-family:var(--mono); font-size:24px; font-weight:600; }
+  .stat-card.gold .v{ color:var(--gold); }
 
-  /* ---------- toolbar ---------- */
-  .toolbar{
-    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-    margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--rule);
+  /* ---------- filter bar ---------- */
+  .filters{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:24px;
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
   }
-  .toolbar input[type="search"], .toolbar select{
-    font-family:var(--font-body); font-size:13.5px;
-    border:1px solid var(--rule-strong); background:var(--paper-raised);
-    padding:9px 12px; border-radius:var(--radius); color:var(--ink);
+  .filters select, .filters input[type="search"]{
+    font-family:var(--font); font-size:13px; color:var(--text);
+    border:1px solid var(--border); background:#FBFBFC;
+    padding:8px 10px; border-radius:7px; min-height:36px;
   }
-  .toolbar input[type="search"]{ flex:1; min-width:180px; }
-  .toolbar select{ cursor:pointer; }
-  .toolbar .count{
-    font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft);
-    margin-left:auto; white-space:nowrap;
+  .filters input[type="search"]{ flex:1; min-width:180px; }
+  .filters select{ cursor:pointer; }
+  .filters .spacer{ flex:1; }
+  .btn{
+    font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:8px 14px; border:1px solid var(--border);
+    background:#fff; color:var(--text); white-space:nowrap;
   }
-
-  /* ---------- section heading ---------- */
-  .section-head{
-    display:flex; align-items:baseline; justify-content:space-between;
-    margin:34px 0 14px 0;
-  }
-  .section-head h2{
-    font-family:var(--font-display); font-size:20px; font-weight:600;
-    margin:0; letter-spacing:-0.01em;
-  }
-  .section-head .sub{ font-size:12px; color:var(--ink-soft); font-family:var(--font-mono); }
-
-  /* ---------- table ---------- */
-  .table-wrap{
-    background:var(--paper-raised); border:1px solid var(--rule-strong);
-    overflow-x:auto;
-  }
-  table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:760px; }
-  thead th{
-    text-align:left; font-family:var(--font-mono); font-size:10.5px;
-    letter-spacing:0.08em; text-transform:uppercase; color:#F3EFE4;
-    background:var(--navy); padding:11px 14px; white-space:nowrap;
-    cursor:pointer; user-select:none;
-  }
-  thead th:hover{ background:#143a63; }
-  thead th.num{ text-align:right; }
-  thead th .arrow{ opacity:0.5; margin-left:4px; font-size:9px; }
-  tbody td{
-    padding:11px 14px; border-top:1px solid var(--rule); vertical-align:middle;
-  }
-  tbody td.num{ text-align:right; font-family:var(--font-mono); }
-  tbody tr:nth-child(even){ background:rgba(22,32,46,0.02); }
-  tbody tr.fresh{ animation:flash 2.2s ease-out; }
-  @keyframes flash{
-    0%{ background:var(--brass-soft); }
-    100%{ background:transparent; }
-  }
-  .badge{
-    display:inline-block; padding:3px 10px; border-radius:20px;
-    font-size:11.5px; font-weight:600; white-space:nowrap;
-  }
-  .cost-cell{ color:var(--brass); font-weight:600; }
-  .empty-state, .loading-state{
-    padding:60px 20px; text-align:center; color:var(--ink-soft);
-    font-family:var(--font-mono); font-size:13px;
-  }
-  .empty-state .regmark, .loading-state .regmark{
-    margin:0 auto 14px auto; color:var(--ink-soft);
-  }
+  .btn:hover{ background:#F3F4F6; }
+  .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.primary:hover{ background:#094273; }
 
   /* ---------- charts ---------- */
-  .charts{ display:grid; grid-template-columns:1.4fr 1fr; gap:1px; background:var(--rule-strong); border:1px solid var(--rule-strong); }
-  .chart-card{ background:var(--paper-raised); padding:20px; }
-  .chart-card h3{
-    font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em;
-    text-transform:uppercase; color:var(--ink-soft); margin:0 0 16px 0; font-weight:600;
+  .charts-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px;
   }
-  .chart-card canvas{ max-height:240px; }
+  .chart-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .chart-card h3{ margin:0 0 12px 0; font-size:13.5px; font-weight:600; color:var(--text); }
+  .chart-card canvas{ max-height:220px; }
+  .chart-empty{
+    height:220px; display:flex; align-items:center; justify-content:center;
+    color:var(--text-faint); font-size:12.5px;
+  }
+
+  /* ---------- table ---------- */
+  .table-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .table-head-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px solid var(--border);
+  }
+  .table-head-row h2{ margin:0; font-size:15px; font-weight:600; }
+  .table-head-row .count{ font-size:12px; color:var(--text-soft); }
+  .table-scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:820px; }
+  thead th{
+    text-align:left; font-size:11.5px; font-weight:600; color:var(--text-soft);
+    text-transform:uppercase; letter-spacing:0.04em; padding:10px 14px;
+    border-bottom:1px solid var(--border); background:#FAFBFC; cursor:pointer; white-space:nowrap;
+  }
+  thead th:hover{ color:var(--text); }
+  thead th.num{ text-align:right; }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); }
+  tbody td.num{ text-align:right; font-family:var(--mono); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:#FAFBFC; }
+  .badge{
+    display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600;
+  }
+  .cost-cell{ color:var(--gold); font-weight:600; }
+  .empty-state, .loading-state{
+    padding:50px 20px; text-align:center; color:var(--text-faint); font-size:13px;
+  }
 
   footer{
-    max-width:1180px; margin:0 auto; padding:24px 28px 50px 28px;
-    display:flex; justify-content:space-between; align-items:center;
-    font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);
-    border-top:1px solid var(--rule); flex-wrap:wrap; gap:10px;
+    text-align:center; padding:26px 0 6px 0; color:var(--text-faint); font-size:11.5px;
   }
+  footer .brand{ letter-spacing:0.08em; font-weight:700; color:var(--text-soft); font-size:11px; margin-bottom:4px; }
 
-  @media (max-width:820px){
+  @media (max-width:900px){
     .stats{ grid-template-columns:repeat(2,1fr); }
-    .charts{ grid-template-columns:1fr; }
-    .masthead-meta{ gap:16px; }
+    .charts-grid{ grid-template-columns:1fr; }
   }
   @media (max-width:640px){
     table{ min-width:0; }
     thead{ display:none; }
-    tbody tr{ display:block; border-top:2px solid var(--rule-strong); padding:10px 0; }
-    tbody tr:nth-child(even){ background:transparent; }
-    tbody td{ display:flex; justify-content:space-between; gap:10px; border-top:none; padding:5px 14px; }
-    tbody td.num{ text-align:right; }
+    tbody tr{ display:block; border-bottom:2px solid var(--border); padding:8px 0; }
+    tbody td{ display:flex; justify-content:space-between; gap:10px; border-bottom:none; padding:5px 14px; }
     tbody td::before{
-      content:attr(data-label); font-family:var(--font-mono); font-size:10px;
-      text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft);
+      content:attr(data-label); font-size:11px; color:var(--text-faint); font-weight:500;
     }
   }
-
-  [data-reduced-motion="true"] *{ animation:none !important; transition:none !important; }
 </style>
 </head>
 <body>
 
-<header class="masthead">
-  <div class="masthead-top">
-    <div class="dateline">
-      <span id="today-date">—</span>
-      <span>Delhi Edition</span>
-    </div>
-    <span class="live-dot" id="live-indicator"><span class="pulse"></span> Live</span>
-  </div>
-  <div class="masthead-main">
-    <div>
-      <span class="kicker">Proof Register &nbsp;·&nbsp; Times of India</span>
-      <div class="wordmark">
-        <span class="regmark"><i style="background:var(--cyan); mix-blend-mode:multiply;"></i></span>
-        The Proof Desk
-      </div>
-    </div>
-    <div class="masthead-meta">
-      <div><div class="n" id="meta-count">0</div><div class="l">Records</div></div>
-      <div><div class="n" id="meta-prints">0</div><div class="l">Prints</div></div>
-      <div><div class="n" id="meta-cost">₹0</div><div class="l">Total Cost</div></div>
-    </div>
-  </div>
-</header>
+<div class="wrap">
 
-<main>
+  <header>
+    <div>
+      <h1>Proof Register Dashboard</h1>
+      <p>Print request tracking &amp; cost register</p>
+    </div>
+    <span class="status" id="status-pill"><span class="dot"></span> Live</span>
+  </header>
 
   <div class="config-banner" id="config-banner">
-    ⚠ No live data source configured. Open <code>index.html</code> and set
-    <code>CONFIG.SCRIPT_URL</code> to your deployed Apps Script <code>/exec</code> URL, then refresh.
+    No live data source configured. Set <code>CONFIG.SCRIPT_URL</code> at the top of this file to your deployed Apps Script <code>/exec</code> URL.
   </div>
 
   <section class="stats">
-    <div class="stat">
-      <span class="l">Total Records</span>
-      <div class="v" id="stat-total">—</div>
-    </div>
-    <div class="stat">
-      <span class="l">Total Prints</span>
-      <div class="v" id="stat-prints">—</div>
-    </div>
-    <div class="stat brass">
-      <span class="l">Total Cost</span>
-      <div class="v" id="stat-cost">—</div>
-    </div>
-    <div class="stat">
-      <span class="l">Added Today</span>
-      <div class="v" id="stat-today">—</div>
-    </div>
+    <div class="stat-card"><div class="l">Total Records</div><div class="v" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="l">Total Prints</div><div class="v" id="stat-prints">—</div></div>
+    <div class="stat-card gold"><div class="l">Total Cost</div><div class="v" id="stat-cost">—</div></div>
+    <div class="stat-card"><div class="l">Added Today</div><div class="v" id="stat-today">—</div></div>
   </section>
 
-  <div class="toolbar">
-    <input type="search" id="search-input" placeholder="Search profile, engineer, who asked…">
-    <select id="filter-profile"><option value="">All profiles</option></select>
-    <select id="filter-engineer"><option value="">All engineers</option></select>
-    <span class="count" id="result-count"></span>
+  <div class="filters">
+    <select id="f-month"><option value="">All months</option></select>
+    <select id="f-engineer"><option value="">All engineers</option></select>
+    <select id="f-profile"><option value="">All profiles</option></select>
+    <select id="f-submitted"><option value="">All submitted to</option></select>
+    <input type="search" id="f-search" placeholder="Search…">
+    <span class="spacer"></span>
+    <button class="btn" id="btn-clear">Clear filters</button>
+    <button class="btn primary" id="btn-export">Export view (CSV)</button>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="Date">Date <span class="arrow">↕</span></th>
-          <th data-sort="Profile">Profile <span class="arrow">↕</span></th>
-          <th data-sort="WhoAsked">Who Asked <span class="arrow">↕</span></th>
-          <th data-sort="Prints" class="num">Prints <span class="arrow">↕</span></th>
-          <th data-sort="Cost" class="num">Cost <span class="arrow">↕</span></th>
-          <th data-sort="Engineer">Engineer <span class="arrow">↕</span></th>
-          <th data-sort="SubmittedTo">Submitted To <span class="arrow">↕</span></th>
-        </tr>
-      </thead>
-      <tbody id="table-body">
-        <tr><td colspan="7"><div class="loading-state"><div class="regmark" style="margin:0 auto 10px auto;"><i style="background:var(--ink-soft);"></i></div>Loading the register…</div></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section-head">
-    <h2>Prints by Profile</h2>
-    <span class="sub">Top 8, by volume</span>
-  </div>
-  <div class="charts">
+  <div class="charts-grid">
     <div class="chart-card">
-      <h3>Prints Volume</h3>
-      <canvas id="chart-profile"></canvas>
+      <h3>Prints by Engineer</h3>
+      <div id="chart-engineer-wrap"><canvas id="chart-engineer"></canvas></div>
     </div>
     <div class="chart-card">
-      <h3>Cost Share</h3>
-      <canvas id="chart-cost"></canvas>
+      <h3>Requests by Profile</h3>
+      <div id="chart-profile-wrap"><canvas id="chart-profile"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Cost Over Time</h3>
+      <div id="chart-cost-wrap"><canvas id="chart-cost"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Who Asked</h3>
+      <div id="chart-whoasked-wrap"><canvas id="chart-whoasked"></canvas></div>
     </div>
   </div>
 
-</main>
+  <div class="table-card">
+    <div class="table-head-row">
+      <h2>Records</h2>
+      <span class="count" id="result-count"></span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="Date">Date</th>
+            <th data-sort="Profile">Profile</th>
+            <th data-sort="WhoAsked">Who Asked</th>
+            <th data-sort="Prints" class="num">No. of Prints</th>
+            <th data-sort="Engineer">Engineer</th>
+            <th data-sort="Remarks">Remarks</th>
+            <th data-sort="SubmittedTo">Submitted To</th>
+            <th data-sort="Cost" class="num">Cost</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="8"><div class="loading-state">Loading latest data…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-<footer>
-  <span>Generated automatically by the Proof Register Automation System</span>
-  <span>Designed &amp; Developed by Swaapan Kumarr Sardar</span>
-</footer>
+  <footer>
+    <div class="brand">PROOF REGISTER DASHBOARD</div>
+    <div>Designed &amp; Developed by Swaapan Kumarr Sardar</div>
+  </footer>
+
+</div>
 
 <script>
 (function(){
-  const state = { records: [], sortKey: "Date", sortDir: "desc", search: "", profile: "", engineer: "" };
-  let chartProfile, chartCost;
-  let seenIds = new Set();
+  const state = { records: [], sortKey:"Date", sortDir:"desc", search:"", month:"", engineer:"", profile:"", submitted:"" };
+  let charts = {};
   let firstLoad = true;
 
   const $ = (sel) => document.querySelector(sel);
   const fmtMoney = (n) => CONFIG.CURRENCY + (Number(n)||0).toLocaleString("en-IN");
   const fmtNum = (n) => (Number(n)||0).toLocaleString("en-IN");
-
-  function todayISO(){
-    const d = new Date();
-    return d.toISOString().slice(0,10);
-  }
-
-  function setDateline(){
-    const opts = { weekday:"long", year:"numeric", month:"long", day:"numeric" };
-    $("#today-date").textContent = new Date().toLocaleDateString("en-IN", opts);
-  }
-
-  function setLive(ok){
-    const el = $("#live-indicator");
-    el.classList.toggle("offline", !ok);
-    el.innerHTML = ok
-      ? '<span class="pulse"></span> Live'
-      : '<span class="pulse"></span> Offline';
-  }
-
-  async function fetchRecords(){
-    if(!CONFIG.SCRIPT_URL || CONFIG.SCRIPT_URL.indexOf("PASTE_YOUR") === 0){
-      $("#config-banner").style.display = "block";
-      setLive(false);
-      $("#table-body").innerHTML = '<tr><td colspan="7"><div class="empty-state">Not connected to a live source yet.</div></td></tr>';
-      return;
-    }
-    try{
-      const res = await fetch(CONFIG.SCRIPT_URL, { cache: "no-store" });
-      if(!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      state.records = Array.isArray(data) ? data : [];
-      setLive(true);
-      populateFilters();
-      render();
-      firstLoad = false;
-    }catch(err){
-      console.error("Fetch failed:", err);
-      setLive(false);
-      if(firstLoad){
-        $("#table-body").innerHTML = '<tr><td colspan="7"><div class="empty-state">Could not reach the live register. Check the deployed script URL and CORS access.</div></td></tr>';
-      }
-    }
-  }
-
-  function populateFilters(){
-    const profiles = Array.from(new Set(state.records.map(r => r.Profile).filter(Boolean))).sort();
-    const engineers = Array.from(new Set(state.records.map(r => r.Engineer).filter(Boolean))).sort();
-
-    fillSelect($("#filter-profile"), profiles, state.profile, "All profiles");
-    fillSelect($("#filter-engineer"), engineers, state.engineer, "All engineers");
-  }
-
-  function fillSelect(select, values, current, allLabel){
-    const prev = select.value || current;
-    select.innerHTML = '<option value="">' + allLabel + '</option>' +
-      values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
-    select.value = prev;
-  }
 
   function escapeHtml(s){
     return String(s == null ? "" : s)
@@ -464,11 +284,73 @@
     return palette[hash % palette.length];
   }
 
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+  function monthKey(v){
+    if(!v) return "";
+    const d = new Date(v);
+    if(isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-US", { month:"short", year:"numeric" });
+  }
+
+  function setStatus(ok){
+    const el = $("#status-pill");
+    el.classList.toggle("offline", !ok);
+    el.innerHTML = '<span class="dot"></span> ' + (ok ? "Live" : "Offline");
+  }
+
+  async function fetchRecords(){
+    if(!CONFIG.SCRIPT_URL || CONFIG.SCRIPT_URL.indexOf("PASTE_YOUR") === 0){
+      $("#config-banner").style.display = "block";
+      setStatus(false);
+      $("#table-body").innerHTML = '<tr><td colspan="8"><div class="empty-state">Not connected to a live source yet.</div></td></tr>';
+      return;
+    }
+    try{
+      const res = await fetch(CONFIG.SCRIPT_URL, { cache:"no-store" });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      state.records = Array.isArray(data) ? data : [];
+      setStatus(true);
+      populateFilters();
+      render();
+      firstLoad = false;
+    }catch(err){
+      console.error("Fetch failed:", err);
+      setStatus(false);
+      if(firstLoad){
+        $("#table-body").innerHTML = '<tr><td colspan="8"><div class="empty-state">Could not reach the live register. Check the deployed script URL.</div></td></tr>';
+      }
+    }
+  }
+
+  function fillSelect(select, values, allLabel){
+    const prev = select.value;
+    select.innerHTML = '<option value="">' + allLabel + '</option>' +
+      values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    select.value = values.includes(prev) ? prev : "";
+  }
+
+  function populateFilters(){
+    const months = Array.from(new Set(state.records.map(r => monthKey(r.Date)).filter(Boolean)));
+    months.sort((a,b) => new Date(a) - new Date(b));
+    const engineers = Array.from(new Set(state.records.map(r => r.Engineer).filter(Boolean))).sort();
+    const profiles = Array.from(new Set(state.records.map(r => r.Profile).filter(Boolean))).sort();
+    const submitted = Array.from(new Set(state.records.map(r => r.SubmittedTo).filter(Boolean))).sort();
+
+    fillSelect($("#f-month"), months, "All months");
+    fillSelect($("#f-engineer"), engineers, "All engineers");
+    fillSelect($("#f-profile"), profiles, "All profiles");
+    fillSelect($("#f-submitted"), submitted, "All submitted to");
+  }
+
   function getFiltered(){
     const q = state.search.trim().toLowerCase();
     return state.records.filter(r => {
-      if(state.profile && r.Profile !== state.profile) return false;
+      if(state.month && monthKey(r.Date) !== state.month) return false;
       if(state.engineer && r.Engineer !== state.engineer) return false;
+      if(state.profile && r.Profile !== state.profile) return false;
+      if(state.submitted && r.SubmittedTo !== state.submitted) return false;
       if(q){
         const hay = [r.Profile, r.WhoAsked, r.Engineer, r.SubmittedTo, r.Remarks]
           .map(v => String(v||"").toLowerCase()).join(" ");
@@ -487,44 +369,12 @@
         return (av - bv) * dir;
       }
       if(key === "Date"){
-        av = new Date(av || 0).getTime();
-        bv = new Date(bv || 0).getTime();
+        av = new Date(av||0).getTime(); bv = new Date(bv||0).getTime();
         return (av - bv) * dir;
       }
       av = String(av||"").toLowerCase(); bv = String(bv||"").toLowerCase();
       return av.localeCompare(bv) * dir;
     });
-  }
-
-  function render(){
-    const filtered = sortRows(getFiltered());
-    const tbody = $("#table-body");
-
-    if(filtered.length === 0){
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="regmark" style="margin:0 auto 10px auto;"><i style="background:var(--ink-soft);"></i></div>No entries match. Try clearing a filter.</div></td></tr>';
-    } else {
-      tbody.innerHTML = filtered.map(r => {
-        const id = r.id || (r.Profile + r.Date + r.Prints);
-        const isFresh = !seenIds.has(id) && !firstLoad;
-        const pColor = paletteFor(r.Profile);
-        return `<tr class="${isFresh ? "fresh" : ""}">
-          <td data-label="Date">${escapeHtml(formatDate(r.Date))}</td>
-          <td data-label="Profile"><span class="badge" style="background:${pColor.bg};color:${pColor.fg};">${escapeHtml(r.Profile)}</span></td>
-          <td data-label="Who Asked">${escapeHtml(r.WhoAsked)}</td>
-          <td data-label="Prints" class="num">${fmtNum(r.Prints)}</td>
-          <td data-label="Cost" class="num cost-cell">${fmtMoney(r.Cost)}</td>
-          <td data-label="Engineer">${escapeHtml(r.Engineer)}</td>
-          <td data-label="Submitted To">${escapeHtml(r.SubmittedTo)}</td>
-        </tr>`;
-      }).join("");
-    }
-
-    state.records.forEach(r => seenIds.add(r.id || (r.Profile + r.Date + r.Prints)));
-
-    $("#result-count").textContent = filtered.length + " of " + state.records.length + " shown";
-
-    updateStats();
-    updateCharts();
   }
 
   function formatDate(v){
@@ -534,7 +384,34 @@
     return d.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
   }
 
-  function updateStats(){
+  function render(){
+    const filtered = sortRows(getFiltered());
+    const tbody = $("#table-body");
+
+    if(filtered.length === 0){
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">No entries match. Try clearing a filter.</div></td></tr>';
+    } else {
+      tbody.innerHTML = filtered.map(r => {
+        const pColor = paletteFor(r.Profile);
+        return `<tr>
+          <td data-label="Date">${escapeHtml(formatDate(r.Date))}</td>
+          <td data-label="Profile"><span class="badge" style="background:${pColor.bg};color:${pColor.fg};">${escapeHtml(r.Profile)}</span></td>
+          <td data-label="Who Asked">${escapeHtml(r.WhoAsked)}</td>
+          <td data-label="No. of Prints" class="num">${fmtNum(r.Prints)}</td>
+          <td data-label="Engineer">${escapeHtml(r.Engineer)}</td>
+          <td data-label="Remarks">${escapeHtml(r.Remarks) || "—"}</td>
+          <td data-label="Submitted To">${escapeHtml(r.SubmittedTo)}</td>
+          <td data-label="Cost" class="num cost-cell">${fmtMoney(r.Cost)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    $("#result-count").textContent = filtered.length + " of " + state.records.length + " shown";
+    updateStats(filtered);
+    updateCharts(filtered);
+  }
+
+  function updateStats(filtered){
     const total = state.records.length;
     const prints = state.records.reduce((s,r) => s + (Number(r.Prints)||0), 0);
     const cost = state.records.reduce((s,r) => s + (Number(r.Cost)||0), 0);
@@ -545,84 +422,151 @@
     $("#stat-prints").textContent = fmtNum(prints);
     $("#stat-cost").textContent = fmtMoney(cost);
     $("#stat-today").textContent = fmtNum(addedToday);
-
-    $("#meta-count").textContent = fmtNum(total);
-    $("#meta-prints").textContent = fmtNum(prints);
-    $("#meta-cost").textContent = fmtMoney(cost);
   }
 
-  function updateCharts(){
-    const byProfile = {};
-    state.records.forEach(r => {
-      const k = r.Profile || "Unspecified";
-      byProfile[k] = byProfile[k] || { prints:0, cost:0 };
-      byProfile[k].prints += Number(r.Prints)||0;
-      byProfile[k].cost += Number(r.Cost)||0;
+  function groupSum(rows, keyFn, valFn){
+    const map = {};
+    rows.forEach(r => {
+      const k = keyFn(r) || "Unspecified";
+      map[k] = (map[k]||0) + valFn(r);
     });
-    const entries = Object.entries(byProfile).sort((a,b) => b[1].prints - a[1].prints).slice(0,8);
-    const labels = entries.map(e => e[0]);
-    const printData = entries.map(e => e[1].prints);
-    const costData = entries.map(e => e[1].cost);
+    return map;
+  }
 
-    const ink = "#16202E";
-    const brass = "#C9860B";
-    const navy = "#0B5394";
+  function makeOrUpdateBar(id, canvasId, labels, data, color){
+    const wrap = $("#" + id + "-wrap");
+    if(labels.length === 0){
+      wrap.innerHTML = '<div class="chart-empty">No data to show yet.</div>';
+      charts[id] = null;
+      return;
+    }
+    if(!document.getElementById(canvasId)){
+      wrap.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
+    }
+    const ctx = document.getElementById(canvasId);
+    if(charts[id]){
+      charts[id].data.labels = labels;
+      charts[id].data.datasets[0].data = data;
+      charts[id].update();
+      return;
+    }
+    charts[id] = new Chart(ctx, {
+      type:"bar",
+      data:{ labels, datasets:[{ data, backgroundColor: color, borderRadius:4, maxBarThickness:32 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ grid:{ display:false }, ticks:{ font:{ family:"Inter", size:11 }, color:"#6B7280" } },
+          y:{ grid:{ color:"#EEF0F3" }, ticks:{ font:{ family:"IBM Plex Mono", size:10 }, color:"#6B7280" } }
+        }
+      }
+    });
+  }
 
-    if(!chartProfile){
-      chartProfile = new Chart($("#chart-profile"), {
-        type: "bar",
-        data: { labels, datasets: [{ data: printData, backgroundColor: navy, borderRadius: 2, maxBarThickness: 34 }] },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ display:false } },
-          scales:{
-            x:{ grid:{ display:false }, ticks:{ color:ink, font:{ family:"IBM Plex Sans", size:11 } } },
-            y:{ grid:{ color:"#E4DECB" }, ticks:{ color:ink, font:{ family:"IBM Plex Mono", size:10 } } }
-          }
-        }
-      });
-      chartCost = new Chart($("#chart-cost"), {
-        type: "doughnut",
-        data: { labels, datasets: [{ data: costData, backgroundColor: labels.map((_,i)=>[navy,brass,"#7B2CBF","#2E7D32","#C2185B","#00796B","#997404","#3F37C9"][i%8]) }] },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ position:"bottom", labels:{ color:ink, boxWidth:10, font:{ family:"IBM Plex Sans", size:10.5 } } } },
-          cutout:"62%"
-        }
-      });
+  function updateCharts(filtered){
+    // Prints by Engineer
+    const byEngineer = groupSum(filtered, r => r.Engineer, r => Number(r.Prints)||0);
+    const engEntries = Object.entries(byEngineer).sort((a,b) => b[1]-a[1]).slice(0,8);
+    makeOrUpdateBar("chart-engineer", "chart-engineer", engEntries.map(e=>e[0]), engEntries.map(e=>e[1]), "#0B5394");
+
+    // Requests by Profile
+    const byProfileCount = groupSum(filtered, r => r.Profile, () => 1);
+    const profEntries = Object.entries(byProfileCount).sort((a,b) => b[1]-a[1]).slice(0,8);
+    makeOrUpdateBar("chart-profile", "chart-profile", profEntries.map(e=>e[0]), profEntries.map(e=>e[1]), "#2E7D32");
+
+    // Who Asked
+    const byWho = groupSum(filtered, r => r.WhoAsked, () => 1);
+    const whoEntries = Object.entries(byWho).sort((a,b) => b[1]-a[1]).slice(0,8);
+    makeOrUpdateBar("chart-whoasked", "chart-whoasked", whoEntries.map(e=>e[0]), whoEntries.map(e=>e[1]), "#7B2CBF");
+
+    // Cost over time (by date, chronological)
+    const byDate = {};
+    filtered.forEach(r => {
+      const d = String(r.Date||"").slice(0,10);
+      if(!d) return;
+      byDate[d] = (byDate[d]||0) + (Number(r.Cost)||0);
+    });
+    const dateKeys = Object.keys(byDate).sort();
+    const wrap = $("#chart-cost-wrap");
+    if(dateKeys.length === 0){
+      wrap.innerHTML = '<div class="chart-empty">No data to show yet.</div>';
+      charts["chart-cost"] = null;
     } else {
-      chartProfile.data.labels = labels;
-      chartProfile.data.datasets[0].data = printData;
-      chartProfile.update();
-      chartCost.data.labels = labels;
-      chartCost.data.datasets[0].data = costData;
-      chartCost.update();
+      if(!document.getElementById("chart-cost")){
+        wrap.innerHTML = '<canvas id="chart-cost"></canvas>';
+      }
+      const labels = dateKeys.map(d => formatDate(d));
+      const data = dateKeys.map(d => byDate[d]);
+      if(charts["chart-cost"]){
+        charts["chart-cost"].data.labels = labels;
+        charts["chart-cost"].data.datasets[0].data = data;
+        charts["chart-cost"].update();
+      } else {
+        charts["chart-cost"] = new Chart(document.getElementById("chart-cost"), {
+          type:"line",
+          data:{ labels, datasets:[{ data, borderColor:"#C9860B", backgroundColor:"rgba(201,134,11,0.12)", fill:true, tension:0.3, pointRadius:3 }] },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ display:false } },
+            scales:{
+              x:{ grid:{ display:false }, ticks:{ font:{ family:"Inter", size:10 }, color:"#6B7280", maxRotation:0 } },
+              y:{ grid:{ color:"#EEF0F3" }, ticks:{ font:{ family:"IBM Plex Mono", size:10 }, color:"#6B7280" } }
+            }
+          }
+        });
+      }
     }
   }
 
+  function exportCSV(){
+    const rows = sortRows(getFiltered());
+    const headers = ["Date","Profile","WhoAsked","Prints","Engineer","Remarks","SubmittedTo","Cost"];
+    const csvRows = [headers.join(",")];
+    rows.forEach(r => {
+      const vals = headers.map(h => {
+        let v = r[h] == null ? "" : String(r[h]);
+        if(v.indexOf(",") !== -1 || v.indexOf('"') !== -1){
+          v = '"' + v.replace(/"/g,'""') + '"';
+        }
+        return v;
+      });
+      csvRows.push(vals.join(","));
+    });
+    const blob = new Blob([csvRows.join("\n")], { type:"text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "proof-register-export-" + todayISO() + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // ---- events ----
-  $("#search-input").addEventListener("input", (e) => { state.search = e.target.value; render(); });
-  $("#filter-profile").addEventListener("change", (e) => { state.profile = e.target.value; render(); });
-  $("#filter-engineer").addEventListener("change", (e) => { state.engineer = e.target.value; render(); });
+  $("#f-search").addEventListener("input", e => { state.search = e.target.value; render(); });
+  $("#f-month").addEventListener("change", e => { state.month = e.target.value; render(); });
+  $("#f-engineer").addEventListener("change", e => { state.engineer = e.target.value; render(); });
+  $("#f-profile").addEventListener("change", e => { state.profile = e.target.value; render(); });
+  $("#f-submitted").addEventListener("change", e => { state.submitted = e.target.value; render(); });
+  $("#btn-clear").addEventListener("click", () => {
+    state.search = ""; state.month = ""; state.engineer = ""; state.profile = ""; state.submitted = "";
+    $("#f-search").value = ""; $("#f-month").value = ""; $("#f-engineer").value = "";
+    $("#f-profile").value = ""; $("#f-submitted").value = "";
+    render();
+  });
+  $("#btn-export").addEventListener("click", exportCSV);
 
   document.querySelectorAll("thead th[data-sort]").forEach(th => {
     th.addEventListener("click", () => {
       const key = th.getAttribute("data-sort");
-      if(state.sortKey === key){
-        state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
-      } else {
-        state.sortKey = key;
-        state.sortDir = "asc";
-      }
+      if(state.sortKey === key){ state.sortDir = state.sortDir === "asc" ? "desc" : "asc"; }
+      else { state.sortKey = key; state.sortDir = "asc"; }
       render();
     });
   });
 
-  if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-    document.body.setAttribute("data-reduced-motion", "true");
-  }
-
-  setDateline();
   fetchRecords();
   setInterval(fetchRecords, CONFIG.REFRESH_MS);
 })();
