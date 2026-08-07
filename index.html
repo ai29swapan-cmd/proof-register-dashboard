@@ -208,7 +208,7 @@
   </section>
 
   <section class="stats-month">
-    <div class="stat-card month-highlight"><div class="l">This Month</div><div class="v" id="month-label">—</div></div>
+    <div class="stat-card month-highlight"><div class="l" id="month-title">This Month</div><div class="v" id="month-label">—</div></div>
     <div class="stat-card"><div class="l">Requests</div><div class="v" id="month-requests">—</div></div>
     <div class="stat-card"><div class="l">Prints</div><div class="v teal" id="month-prints">—</div></div>
     <div class="stat-card"><div class="l">Cost</div><div class="v magenta" id="month-cost">—</div></div>
@@ -314,7 +314,7 @@
     if(!v) return "";
     const d = new Date(v);
     if(isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("en-US", { month:"short", year:"numeric" });
+    return d.toLocaleDateString("en-US", { month:"long", year:"numeric" });
   }
 
   function setStatus(ok){
@@ -456,25 +456,25 @@
     }
   }
 
-  function isThisMonth(v){
-    if(!v) return false;
-    const d = new Date(v);
-    if(isNaN(d.getTime())) return false;
-    const now = new Date();
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-
   function updateMonthStats(){
     const now = new Date();
-    $("#month-label").textContent = now.toLocaleDateString("en-US", { month:"long", year:"numeric" });
+    const currentMonth = now.toLocaleDateString("en-US", { month:"long", year:"numeric" });
 
-    // Always scoped to the full dataset (not the current filter selection)
-    // so "This Month" reflects the real month totals regardless of what
-    // the person is currently filtering the table by.
-    const thisMonth = state.records.filter(r => isThisMonth(r.Date));
-    const requests = thisMonth.length;
-    const prints = thisMonth.reduce((s,r) => s + (Number(r.Prints)||0), 0);
-    const cost = thisMonth.reduce((s,r) => s + (Number(r.Cost)||0), 0);
+    // If a specific month is selected in the filter bar, the panel
+    // follows that selection. Otherwise it defaults to the real
+    // current month. Always scoped to the full dataset (not the
+    // other active filters like engineer/profile) so it stays a
+    // clean month-level summary.
+    const activeMonth = state.month || currentMonth;
+    const isCurrent = activeMonth === currentMonth;
+
+    $("#month-label").textContent = activeMonth;
+    $("#month-title").textContent = isCurrent ? "This Month" : "Selected Month";
+
+    const scoped = state.records.filter(r => monthKey(r.Date) === activeMonth);
+    const requests = scoped.length;
+    const prints = scoped.reduce((s,r) => s + (Number(r.Prints)||0), 0);
+    const cost = scoped.reduce((s,r) => s + (Number(r.Cost)||0), 0);
 
     $("#month-requests").textContent = fmtNum(requests);
     $("#month-prints").textContent = fmtNum(prints);
